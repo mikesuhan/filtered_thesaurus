@@ -72,16 +72,16 @@ class Thesaurus:
 
         for key in results:
             for item in results[key]:
-                first_col_items.append(item)
+                first_col_items.append(item[0])
 
         if not first_col_items:
             return 'No matches found for {}.'.format(word)
 
         first_col_items += categories
-        first_col_len = len(max(first_col_items, key=len)) + 3
-
+        first_col_len = len(max(first_col_items, key=len))
 
         filter_names = sorted(f for f in self.filters)
+
         for fn_i, fn in enumerate(filter_names):
             for f, f_i in self.filter_order:
                 if fn.lower() == f.lower():
@@ -89,7 +89,7 @@ class Thesaurus:
         output = []
 
         for category in [c for c in categories if results[c]]:
-            header = [category.upper()] + filter_names
+            header = [category.upper().ljust(first_col_len)] + filter_names
             output.append(header)
 
             for item, found_in in results[category]:
