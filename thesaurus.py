@@ -1,8 +1,8 @@
 import os
 from re import sub
 from collections import defaultdict
-from nltk.corpus import wordnet as wn
 from wiktionaryparser import WiktionaryParser
+import sqlite3
 
 wp = WiktionaryParser()
 
@@ -17,6 +17,8 @@ class Thesaurus:
         'found': 'X',
         'not_found': ''
     }
+
+    db_path='wordnet.db'
 
     def __init__(self, *filters, filter_dir='filters', required=None):
         if type(required) is str:
@@ -40,7 +42,7 @@ class Thesaurus:
         self.set_getters()
 
     def set_getters(self):
-        self.getters = self.get_wordnet, self.get_wiktionary
+        self.getters =  self.get_wiktionary, self.get_db
 
 
     def get(self, word):
@@ -56,7 +58,7 @@ class Thesaurus:
         for key in results:
             for item in results[key]:
                 found_in = self.in_filter(item)
-                if found_in:
+                if self.required is None or (found_in and self.required is not None):
                     output[key] += [[item, found_in]]
 
         return output
@@ -115,10 +117,22 @@ class Thesaurus:
                 return []
         return output
 
-    def check_lemmas(self, lemma):
-        for lemma_name in lemma.synset().lemma_names():
-            lemma_name = ' '.join(lemma_name.split('_'))
-            yield lemma_name
+
+    def get_db(self, word):
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        results = c.execute("""SELECT * FROM words WHERE word = '{}' """.format(word.lower()))
+        results = list(results)
+        if results:
+            results = results[0]
+            synonyms = results[1].split('\t') if results[1] else []
+            antonyms = results[2].split('\t') if results[2] else []
+        else:
+            synonyms, antonyms = [], []
+        return {
+            'synonyms': synonyms,
+            'antonyms': antonyms
+        }
 
     def clean_wiktionary(self, words):
         words = sub('\(.*?\):', '', words)
@@ -147,26 +161,4 @@ class Thesaurus:
             'antonyms': set(antonyms)
         }
 
-
-
-    def get_wordnet(self, word):
-        synonyms, antonyms = [], []
-
-        for synset in wn.synsets(word):
-            for lemma in synset.lemmas():
-                for match in self.check_lemmas(lemma):
-                    if match not in synonyms:
-                        synonyms.append(match)
-
-                # adds antonyms
-                for antonym_lemma in lemma.antonyms():
-                    for match in self.check_lemmas(antonym_lemma):
-                        if match not in antonyms:
-                            antonyms.append(match)
-
-
-        return {
-            'synonyms': set(synonyms),
-            'antonyms': set(antonyms)
-        }
 

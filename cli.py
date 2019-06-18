@@ -18,7 +18,7 @@ while True:
     elif len(query.strip().split()) > 1:
 
         # change required word list(s)
-        if query.lower().startswith('REQUIRE'):
+        if query.lower().startswith('require'):
             require = [item.strip() for item in query.split()[1:]]
             thes = Thesaurus(required=require)
             print('\nOnly matches in the following list{} will be shown:\n{}\n'.format(
