@@ -1,5 +1,5 @@
 import os
-from re import sub, findall
+from re import sub, findall, IGNORECASE
 from collections import defaultdict
 from wiktionaryparser import WiktionaryParser
 from bs4 import BeautifulSoup
@@ -150,7 +150,7 @@ class Thesaurus:
     def clean_wiktionary(self, words):
         """Removes extra information included in related words section of wiktionary pages"""
         words = sub('\(.*?\):', '', words)
-        words = sub(';\ssee\salso.*|See\salso.*', '', words)
+        words = sub(';\ssee\salso.*|see\s[a-z\s]*Thesaurus.*', '', words, IGNORECASE)
         words = words.replace(';', '')
         words = words.strip()
         words = words.split(', ')
@@ -158,7 +158,15 @@ class Thesaurus:
 
     def get_wiktionary(self, word, language='English'):
         """Gets related words for entries from regular Wiktionary wiki pages"""
-        entries = wp.fetch(word, language)
+        try:
+            entries = wp.fetch(word, language)
+        except requests.exceptions.ConnectionError:
+            print()
+            print('Not able to connect to Wiktionary.')
+            return {
+                'synonyms': [],
+                'antonyms': []
+            }
         synonyms, antonyms = [], []
 
         for entry in entries:
