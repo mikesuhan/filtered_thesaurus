@@ -180,7 +180,7 @@ class Thesaurus:
         url = 'https://en.wiktionary.org/w/index.php?title=Thesaurus:{}&printable=yes'.format(word)
 
         categories = [c.lower() for c in categories]
-        output = {}
+        output = {c:[] for c in categories}
 
         session = requests.Session()
         session.mount("https://", requests.adapters.HTTPAdapter(max_retries=2))
