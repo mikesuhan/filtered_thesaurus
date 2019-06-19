@@ -45,10 +45,12 @@ class Thesaurus:
         self.set_getters()
 
     def set_getters(self):
+        """Defines which methods are used to look up words."""
         self.getters =  self.get_wiktionary, self.get_db
 
 
     def get(self, word):
+        """Combines output of methods that look up words."""
         results = defaultdict(list)
         for getter in self.getters:
             matches = getter(word)
@@ -72,6 +74,7 @@ class Thesaurus:
         return output
 
     def get_as_string(self, word, *categories):
+        """Tabulates output of self.get() with wordlists as columns and word data as rows."""
         if not categories:
             categories = self.results_order[:]
 
@@ -117,6 +120,7 @@ class Thesaurus:
         return '\n'.join('\t'.join(row) for row in output)
 
     def in_filter(self, word):
+        """Checks if a word is in a wordlist in the self.filter_dir directory. Returns list of strings."""
         output = []
         for key in self.filters:
             if word in self.filters[key]:
@@ -127,6 +131,7 @@ class Thesaurus:
 
 
     def get_db(self, word):
+        """Looks up a word in SQLite3 database. Assumes table has three rows (word, synonyms, antonyms)."""
         conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
         results = c.execute("""SELECT * FROM words WHERE word = '{}' """.format(word.lower()))
@@ -143,6 +148,7 @@ class Thesaurus:
         }
 
     def clean_wiktionary(self, words):
+        """Removes extra information included in related words section of wiktionary pages"""
         words = sub('\(.*?\):', '', words)
         words = sub(';\ssee\salso.*|See\salso.*', '', words)
         words = words.replace(';', '')
@@ -151,6 +157,7 @@ class Thesaurus:
         return words
 
     def get_wiktionary(self, word, language='English'):
+        """Gets related words for entries from regular Wiktionary wiki pages"""
         entries = wp.fetch(word, language)
         synonyms, antonyms = [], []
 
@@ -176,6 +183,7 @@ class Thesaurus:
         }
 
     def get_wiktionary_thesaurus(self, word, *categories):
+        """Gets words categorized as category argument(s) from wiktionary Thesaurus wiki pages."""
         word = word.replace(' ', '_')
         url = 'https://en.wiktionary.org/w/index.php?title=Thesaurus:{}&printable=yes'.format(word)
 
