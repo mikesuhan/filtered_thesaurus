@@ -22,12 +22,13 @@ class Thesaurus:
 
     db_path='wordnet.db'
 
-    def __init__(self, *filters, filter_dir='filters', required=None):
+    def __init__(self, *filters, filter_dir='filters', required=None, must_match=False):
         if type(required) is str:
             required = [required.lower()]
         elif type(required) in [tuple, list]:
             required = [r.lower() for r in required]
         self.required = required
+        self.must_match = must_match
 
         filter_dir = 'filters'
         filter_files = os.listdir(filter_dir)
@@ -59,9 +60,14 @@ class Thesaurus:
 
         for key in results:
             for item in results[key]:
-                found_in = self.in_filter(item)
-                if self.required is None or (found_in and self.required is not None):
-                    output[key] += [[item, found_in]]
+                if item:
+                    found_in = self.in_filter(item)
+                    # requires the word to be in at least one list
+                    if self.must_match and not found_in:
+                        continue
+                    # determines if other requirements are met if there are any
+                    if self.required is None or (found_in and self.required is not None):
+                        output[key] += [[item, found_in]]
 
         return output
 
