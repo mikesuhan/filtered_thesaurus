@@ -1,8 +1,10 @@
 import os
-from re import sub
+from re import sub, findall
 from collections import defaultdict
 from wiktionaryparser import WiktionaryParser
+from bs4 import BeautifulSoup
 import sqlite3
+import requests
 
 wp = WiktionaryParser()
 
@@ -136,7 +138,7 @@ class Thesaurus:
 
     def clean_wiktionary(self, words):
         words = sub('\(.*?\):', '', words)
-        words = sub(';\ssee\salso.*', '', words)
+        words = sub(';\ssee\salso.*|See\salso.*', '', words)
         words = words.replace(';', '')
         words = words.strip()
         words = words.split(', ')
@@ -152,6 +154,12 @@ class Thesaurus:
                     if relationship['relationshipType'] == 'synonyms':
                         for words in relationship['words']:
                             synonyms += self.clean_wiktionary(words)
+                            if 'see also thesaurus:' in words.lower():
+                                thesaurus_title = words.lower().split('thesaurus:')[-1].strip()
+                                thesaurus_words = self.get_wiktionary_thesaurus(thesaurus_title)
+                                more_words = self.get_wiktionary_thesaurus(thesaurus_title, 'synonyms', 'antonyms')
+                                synonyms += more_words['synonyms']
+                                antonyms += more_words['antonyms']
                     elif relationship['relationshipType'] == 'antonyms':
                         for words in relationship['words']:
                             antonyms += self.clean_wiktionary(words)
@@ -160,5 +168,35 @@ class Thesaurus:
             'synonyms': set(synonyms),
             'antonyms': set(antonyms)
         }
+
+    def get_wiktionary_thesaurus(self, word, *categories):
+        word = word.replace(' ', '_')
+        url = 'https://en.wiktionary.org/w/index.php?title=Thesaurus:{}&printable=yes'.format(word)
+
+        categories = [c.lower() for c in categories]
+        output = {}
+
+        session = requests.Session()
+        session.mount("https://", requests.adapters.HTTPAdapter(max_retries=2))
+        response = session.get(url)
+
+        soup = BeautifulSoup(response.text, 'html.parser')
+        content = soup.find('div', attrs={'id': 'mw-content-text'})
+        if content:
+            content = content.__repr__().replace('\n', '')
+            content = findall('(<h5>.*?</div>)', content)
+            for section in content:
+                soup = BeautifulSoup(section, 'html.parser')
+                span = soup.find('span')
+                if span and soup.span.text.lower() in categories:
+                    key = soup.span.text.lower()
+                    links = soup.find_all('a')
+                    if links:
+                        words = [a.text.replace('_', ' ') for a in links
+                                 if a.get('href', '').startswith('/wiki/') and not
+                                 a.get('href', '').startswith('/wiki/Thesaurus:')]
+                        output[key] = words
+
+        return output
 
 
