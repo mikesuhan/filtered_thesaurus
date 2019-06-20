@@ -149,8 +149,8 @@ class Thesaurus:
 
     def clean_wiktionary(self, words):
         """Removes extra information included in related words section of wiktionary pages"""
-        words = sub('\(.*?\):', '', words)
-        words = sub(';\ssee\salso.*|see\s[a-z\s]*Thesaurus.*', '', words, IGNORECASE)
+        words = sub('\(.*?\):*', '', words)
+        words = sub(';\ssee\salso.*|see\s[a-z\s]*Thesaurus.*', '', words, flags=IGNORECASE)
         words = words.replace(';', '')
         words = words.strip()
         words = words.split(', ')
