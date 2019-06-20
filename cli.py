@@ -1,4 +1,5 @@
 from thesaurus import Thesaurus
+from sys import exit
 
 thes = Thesaurus()
 
@@ -16,7 +17,7 @@ while True:
         print('To add a new word list, create a txt file in the filters directory with each word on a new line. Then restart the program.')
 
     elif query.strip() == 'QUIT':
-        quit()
+        exit()
 
     elif query.strip().lower() == 'reset settings':
         thes = Thesaurus()
